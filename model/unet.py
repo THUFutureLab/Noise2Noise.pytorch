@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+__all__ = ['UNet']
+
 from torch import nn
-from torchtoolbox.nn.init import KaimingInitializer
 import torch
 
 
@@ -38,7 +39,6 @@ class UNet(nn.Module):
         self._block3 = nn.Sequential(
             nn.Conv2d(48, 48, 3, 1, 1),
             nn.ReLU(inplace=True),
-            # nn.ConvTranspose2d(48, 48, 3, 2, 1, output_padding=1),
             nn.Upsample(scale_factor=2, mode='nearest'),
         )
         self._block4 = nn.Sequential(
@@ -84,11 +84,3 @@ class UNet(nn.Module):
 
         out = self._block6(concat1)
         return out
-
-
-if __name__ == '__main__':
-    model = UNet()
-    initializer = KaimingInitializer(model)
-    a = torch.rand(1, 3, 256, 256)
-    out = model(a)
-    print(out)
