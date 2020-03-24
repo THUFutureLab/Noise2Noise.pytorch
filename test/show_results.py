@@ -5,26 +5,35 @@ import numpy as np
 import cv2
 import os
 from torch.nn import functional as F
-from model import UNet
+from model import *
 from torch import nn
 from dataset import PairDataset
-from transform import RandomCrop, RandomTextOverlay
+from transform import RandomCrop, RandomTextOverlay, RandomGaussianNoise
 from torchtoolbox import transform
 
+
+class wapper(nn.Module):
+    def __init__(self, module):
+        super(wapper, self).__init__()
+        self.module = module
+
+
 model = UNet()
-model = nn.DataParallel(model)
-model.load_state_dict(torch.load('../param/77.pt'))
+# model = ResConnNoise()
+# model = nn.DataParallel(model)
+model = wapper(model)
+model.load_state_dict(torch.load('../param/5_gaussian.pt', map_location=torch.device('cpu')))
 model = model.module.cpu()
 
 pre_transform = RandomCrop(256, pad_if_needed=True)
 source_transform = transform.Compose([
-    # RandomGaussianNoise(p=0.95, mean=0, std=25, fixed_distribution=False),
-    RandomTextOverlay(p=1, max_occupancy=30, length=(15, 30)),
+    RandomGaussianNoise(p=0.95, mean=0, std=25, fixed_distribution=False),
+    # RandomTextOverlay(p=1, max_occupancy=30, length=(15, 30)),
     transform.ToTensor(),
 ])
 
 test_transform = transform.ToTensor()
-dt = PairDataset('/media/piston/data/Noise2Noise/train', pre_transform=pre_transform,
+dt = PairDataset('/media/piston/data/Noise2Noise/test', pre_transform=pre_transform,
                  source_transform=source_transform, target_transform=test_transform)
 
 
@@ -54,7 +63,7 @@ with torch.no_grad():
         cv2.imshow('Denoise', o)
         cv2.imshow('Target', t)
         #
-        # cv2.imwrite('../save_imgs/{}_{}.bmp'.format(i, 'source'), s)
-        # cv2.imwrite('../save_imgs/{}_{}.bmp'.format(i, 'denoise'), o)
-        # cv2.imwrite('../save_imgs/{}_{}.bmp'.format(i, 'ground_truth'), t)
+        cv2.imwrite('../save_imgs/{}_{}.bmp'.format(i, 'source'), s)
+        cv2.imwrite('../save_imgs/{}_{}.bmp'.format(i, 'denoise'), o)
+        cv2.imwrite('../save_imgs/{}_{}.bmp'.format(i, 'ground_truth'), t)
         cv2.waitKey(0)

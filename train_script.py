@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from transform import *
-from model import UNet
+from model import *
 from dataset import PairDataset
 from torch.utils.data import DataLoader
 from torchtoolbox.nn.init import KaimingInitializer
@@ -18,6 +18,7 @@ import torch
 import os
 import time
 
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 parser = argparse.ArgumentParser(description='Train a Noise2Noise model')
 parser.add_argument('--data-path', type=str, required=True,
                     help='training and validation dataset.')
@@ -91,14 +92,13 @@ train_data = DataLoader(train_set, batch_size, shuffle=True, pin_memory=True, nu
 test_data = DataLoader(test_set, batch_size, shuffle=False, pin_memory=True, num_workers=num_workers, drop_last=False)
 
 model = UNet()
+# model = ResNoise()
 KaimingInitializer(model)
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=lr, betas=adam_param[0:2], eps=adam_param[2],
                        weight_decay=args.wd)
 
-lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(epochs * t) for t in (0.25, 0.5, 0.75)],
-                                              gamma=0.1)
-# lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=epochs / 5, factor=0.5, verbose=True)
+lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=epochs / 5, factor=0.5, verbose=True)
 model = nn.DataParallel(model)
 
 if train_loss == 'hdr':
@@ -133,14 +133,15 @@ def test(epoch=0, save_status=True):
         outputs = model(source).cpu()
         outputs = outputs.clamp(0, 1)
         loss = Loss(outputs, target)
-        loss_record.step(loss)
+        loss_record.update(loss)
 
         for b in range(source.size()[0]):
-            psnr_record.step(get_psnr(outputs[b], target[b]))
+            psnr_record.update(get_psnr(outputs[b], target[b]))
 
     print('Epoch {}, {}:{:.5}, {}:{:.5}'.format(
         epoch, psnr_record.name, psnr_record.get(),
         loss_record.name, loss_record.get()))
+    lr_scheduler.step(loss_record.get())
     if save_status:
         torch.save(model.state_dict(), os.path.join(args.save_dir, '{}.pt'.format(epoch)))
         print("Finish save stats.")
@@ -163,7 +164,7 @@ def train():
             loss.backward()
             optimizer.step()
 
-            loss_record.step(loss)
+            loss_record.update(loss)
             if i % args.log_interval == 0 and i != 0:
                 print('Epoch {}, Iter {}, {}:{:.5}, {} samples/s.'.format(
                     epoch, i, loss_record.name, loss_record.get(),
@@ -171,7 +172,7 @@ def train():
                 ))
         if train_loss == 'l0':
             Loss.gamma = 2 * (1 - epoch / epochs)
-        lr_scheduler.step(epoch)
+
         train_speed = int(len(train_set) // (time.time() - tic))
         print('Epoch {}, {}:{:.5}, {} samples/s.'.format(
             epoch, loss_record.name, loss_record.get(), train_speed))

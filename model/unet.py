@@ -7,8 +7,9 @@ import torch
 
 
 class UNet(nn.Module):
-    def __init__(self, in_channels=3, out_channels=3):
+    def __init__(self, in_channels=3, out_channels=3, act_type='relu'):
         super(UNet, self).__init__()
+        assert act_type in ('relu', 'lrelu')
         self._block1 = nn.Sequential(
             nn.Conv2d(in_channels, 48, 3, 1, 1),
             nn.ReLU(inplace=True),
@@ -61,7 +62,7 @@ class UNet(nn.Module):
             nn.Conv2d(64, 32, 3, 1, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(32, out_channels, 3, 1, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True) if act_type == 'relu' else nn.LeakyReLU(negative_slope=0.1, inplace=True),
         )
 
     def forward(self, x):
