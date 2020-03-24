@@ -210,3 +210,12 @@ fabric.properties
 .idea/misc.xml
 .idea/modules.xml
 .idea/vcs.xml
+!/MRI/test_val_set.py
+!/MRI/test.py
+.idea/deployment.xml
+.idea/other.xml
+MRI/param/
+param/
+save_imgs_gaussian/
+train_local.py
+!/train_local.py
