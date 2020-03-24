@@ -2,7 +2,7 @@
   "description": "train MRI de-noise config",
   "data-path": "/s4/piston/Noise2Noise_dataset/pkl_data",
   "batch-size": {
-    "value": 8,
+    "value": 4,
     "default": 8,
     "help": "training batch size per device (CPU/GPU)."
   },

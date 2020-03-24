@@ -99,8 +99,8 @@ def train():
             denoised = model(source)[:, :, :-1, :-1]
             denoised = post_process(denoised, spec_mask, spec_val)
 
-            # denoised = torch.clamp(denoised, -0.5, 0.5)
-            # target = torch.clamp(target, -0.5, 0.5)
+            denoised = torch.clamp(denoised, -0.5, 0.5)
+            target = torch.clamp(target, -0.5, 0.5)
             loss = Loss(denoised, target)
             loss.backward()
             optimizer.step()
@@ -132,8 +132,8 @@ def test(epoch):
         denoised = model(source)[:, :, :-1, :-1]
         denoised = post_process(denoised, spec_mask, spec_val)
 
-        # denoised = torch.clamp(denoised, -0.5, 0.5)
-        # target = torch.clamp(target, -0.5, 0.5)
+        denoised = torch.clamp(denoised, -0.5, 0.5)
+        target = torch.clamp(target, -0.5, 0.5)
 
         loss = Loss(denoised, target)
 
